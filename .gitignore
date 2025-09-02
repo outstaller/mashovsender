@@ -1,2 +1,3 @@
-__pycache__/mashov_api.cpython-313.pyc
-userlist.csv
+__pycache__/*
+./userlist.csv
+uploads/*

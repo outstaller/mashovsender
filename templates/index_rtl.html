@@ -344,17 +344,19 @@
                                     // Scroll to the highlighted row
                                     rowElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                                 }
+                                continue; // Skip to the next line
                             }
                         } catch (e) {
                             // Not a JSON message, treat as plain log
-                            if (data.includes('--- SUMMARY ---')){
-                                summary.innerHTML = ''; // Clear previous summary
-                            } else if (data.startsWith('Success:') || data.startsWith('Failed:')) {
-                                summary.innerHTML += data + '<br>';
-                            } else {
-                                logBox.innerHTML += data + '\n';
-                                logBox.scrollTop = logBox.scrollHeight;
-                            }
+                        }
+
+                        if (data.includes('--- SUMMARY ---')){
+                            summary.innerHTML = ''; // Clear previous summary
+                        } else if (data.startsWith('Success:') || data.startsWith('Failed:')) {
+                            summary.innerHTML += data + '<br>';
+                        } else {
+                            logBox.innerHTML += data + '\n';
+                            logBox.scrollTop = logBox.scrollHeight;
                         }
                     }
                 }

@@ -4,7 +4,7 @@ import pandas as pd
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 from mashov_api import MashovClient, DEFAULT_SUBJECT, DEFAULT_TEMPLATE, normalize_id
-
+import json
 import datetime
 
 def get_academic_years():
@@ -137,14 +137,14 @@ def generate_logs(creds, file_path, id_col, subject, body, dry_run, send_email):
     failed_rows = []
 
     for index, row in df.iterrows():
-        yield f"data: {{ 'type': 'highlight', 'row_index': {index}, 'status': 'processing' }}\n\n"
+        yield f"data: {json.dumps({'type': 'highlight', 'row_index': index, 'status': 'processing'})}\n\n"
         student_id = normalize_id(row[id_col])
         
         try:
             student_details = client.locate_by_id(student_id)
             if not student_details:
                 yield f"data: [SKIP] No match for {row[id_col]}\n\n"
-                yield f"data: {{ 'type': 'highlight', 'row_index': {index}, 'status': 'failed' }}\n\n"
+                yield f"data: {json.dumps({'type': 'highlight', 'row_index': index, 'status': 'failed'})}\n\n"
                 failure_count += 1
                 failed_rows.append(row.to_dict())
                 continue
@@ -152,7 +152,7 @@ def generate_logs(creds, file_path, id_col, subject, body, dry_run, send_email):
             recipient_id = student_details.get('studentGuid')
             if not recipient_id:
                 yield f"data: [SKIP] Could not extract studentGuid for {row[id_col]}\n\n"
-                yield f"data: {{ 'type': 'highlight', 'row_index': {index}, 'status': 'failed' }}\n\n"
+                yield f"data: {json.dumps({'type': 'highlight', 'row_index': index, 'status': 'failed'})}\n\n"
                 failure_count += 1
                 failed_rows.append(row.to_dict())
                 continue
@@ -164,17 +164,16 @@ def generate_logs(creds, file_path, id_col, subject, body, dry_run, send_email):
             if not dry_run:
                 client.send_message(message_subject, message_body, [recipient_id], sendViaEmail=send_email)
                 yield f"data: [OK] Sent to {row[id_col]}\n\n"
-                yield f"data: {{ 'type': 'highlight', 'row_index': {index}, 'status': 'success' }}\n\n"
+                yield f"data: {json.dumps({'type': 'highlight', 'row_index': index, 'status': 'success'})}\n\n"
                 success_count += 1
             else:
-                client.send_message(message_subject, message_body, [recipient_id], sendViaEmail=send_email)
                 yield f"data: [DRY RUN] Would send to {row[id_col]}\n\n"
-                yield f"data: {{ 'type': 'highlight', 'row_index': {index}, 'status': 'success' }}\n\n"
+                yield f"data: {json.dumps({'type': 'highlight', 'row_index': index, 'status': 'success'})}\n\n"
                 success_count += 1
 
         except Exception as e:
             yield f"data: [FAIL] {row[id_col]}: {e}\n\n"
-            yield f"data: {{ 'type': 'highlight', 'row_index': {index}, 'status': 'failed' }}\n\n"
+            yield f"data: {json.dumps({'type': 'highlight', 'row_index': index, 'status': 'failed'})}\n\n"
             failure_count += 1
             failed_rows.append(row.to_dict())
     
