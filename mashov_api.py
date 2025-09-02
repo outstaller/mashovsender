@@ -95,11 +95,21 @@ class MashovClient:
             "Content-Type": "application/json;charset=UTF-8",
             "Origin": BASE,
             "Referer": BASE + "/teachers/login",
-            "User-Agent": "MashovAPI-Python/1.0",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36",
         })
 
     def login(self) -> Dict[str, Any]:
-        payload = {"username": self.user, "password": self.pwd, "year": self.year, "semel": self.semel}
+        payload = {
+            "username": self.user, 
+            "password": self.pwd, 
+            "year": self.year, 
+            "semel": self.semel,
+            "deviceManufacturer":  "win",
+            "deviceModel": "desktop",
+            "devicePlatform":  "chrome",
+            "deviceUuid": "chrome",
+            "deviceVersion": "139.0.0.0"
+        }
         r = self.s.post(LOGIN_ENDPOINT, data=json.dumps(payload), timeout=self.timeout)
         r.raise_for_status()
         data = r.json() if r.content else {}
