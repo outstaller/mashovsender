@@ -85,5 +85,5 @@ A web-based application to send personalized messages to students via the Mashov
 ├── templates
 │   └── index_rtl.html    # HTML template for the web interface
 └── uploads
-    └── userlist.csv      # Example CSV file
+└── userlist-sample-nodata.csv # Example CSV file without any data
 ```
