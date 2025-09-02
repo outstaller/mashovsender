@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>Mashov Sender</title>
+    <style>
+        body { background-color: #f8f9fa; }
+        .container { max-width: 800px; }
+        .card { margin-top: 2rem; }
+        .log-box { 
+            background-color: #333; 
+            color: #eee; 
+            font-family: monospace;
+            height: 300px;
+            overflow-y: scroll;
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="card-title text-center">Mashov Sender</h1>
+                    <a href="/reset" class="btn btn-sm btn-warning">Start Over</a>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}" role="alert">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                {% if session.step == 1 or not session.step %}
+                    <h3>Step 1: Login</h3>
+                    <form method="post">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="year">Year</label>
+                            <input type="text" class="form-control" id="year" name="year" value="{{ year }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </form>
+                {% elif session.step == 2 %}
+                    <h3>Step 2: Upload CSV</h3>
+                    {% if not session.columns %}
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <label for="csv_file">Upload CSV file</label>
+                            <input type="file" class="form-control-file" id="csv_file" name="csv_file" accept=".csv" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </form>
+                    {% endif %}
+
+                    {% if session.columns %}
+                    <hr>
+                    <h4>Map Columns</h4>
+                    <form method="post">
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label for="id_col">Student ID Column</label>
+                                <select id="id_col" name="id_col" class="form-control">
+                                    {% for col in session.columns %}
+                                    <option value="{{ col }}" {% if 'ת.ז' in col %}selected{% endif %}>{{ col }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Next</button>
+                    </form>
+                    {% endif %}
+                {% elif session.step == 3 %}
+                    <h3>Step 3: Compose and Send</h3>
+                    <form id="send-form">
+                        <div class="form-group">
+                            <label for="subject">Subject</label>
+                            <input type="text" class="form-control" id="subject" name="subject" value="{{ subject }}">
+                        </div>
+                        <div class="form-group">
+                            <label for="body">Body</label>
+                            <textarea class="form-control" id="body" name="body" rows="10">{{ body }}</textarea>
+                            <small class="form-text text-muted">You can use placeholders like {column_name} from your CSV file.</small>
+                        </div>
+                        <div class="form-group form-check">
+                            <input type="checkbox" class="form-check-input" id="dry_run" name="dry_run" value="true">
+                            <label class="form-check-label" for="dry_run">Dry Run (don't send messages)</label>
+                        </div>
+                        <button type="submit" class="btn btn-success">Send Messages</button>
+                    </form>
+
+                    <hr>
+                    <h4>Logs</h4>
+                    <div id="log-box" class="log-box"></div>
+                    <hr>
+                    <h4>Summary</h4>
+                    <p id="summary"></p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if session.step == 3 %}
+    <script>
+        const form = document.getElementById('send-form');
+        const logBox = document.getElementById('log-box');
+        const summary = document.getElementById('summary');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            logBox.innerHTML = '';
+            summary.innerHTML = '';
+
+            const formData = new FormData(form);
+            const response = await fetch('/', {
+                method: 'POST',
+                body: formData
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+
+            let successCount = 0;
+            let failureCount = 0;
+
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n\n');
+                
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        const data = line.substring(6);
+                        logBox.innerHTML += data + '\n';
+                        logBox.scrollTop = logBox.scrollHeight;
+
+                        if (data.includes('--- SUMMARY ---')){
+                            // The next lines will be the summary
+                        } else if (data.startsWith('Success:')) {
+                            summary.innerHTML += data + '<br>';
+                        } else if (data.startsWith('Failed:')) {
+                            summary.innerHTML += data + '<br>';
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+    {% endif %}
+</body>
+</html>
