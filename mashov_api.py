@@ -1,12 +1,12 @@
 
-import re
-import os, sys, json, unicodedata
+
+import json
+import unicodedata
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
 
 import requests
 import pandas as pd
-from dotenv import load_dotenv
 
 BASE = "https://web.mashov.info"
 API  = BASE + "/api"
@@ -117,12 +117,13 @@ class MashovClient:
         for cookie in self.s.cookies:
             if cookie.name.lower() == CSRF_COOKIE_NAME.lower():
                 self.csrf = cookie.value
-                self.s.headers[CSRF_HEADER_NAME] = self.csrf
+                if self.csrf is not None:
+                    self.s.headers[CSRF_HEADER_NAME] = self.csrf
                 break
         self.logged_in_user = data #.get("accessToken").get("displayName") if isinstance(data, dict) else None
         return data
     
-    def locate_by_id(self, student_id: str) -> Dict[str, Any]:
+    def locate_by_id(self, student_id: str) -> Optional[Dict[str, Any]]:
         r = self.s.get(f"{SEARCH_STUDENTS_ENDPOINT}/{student_id}", timeout=self.timeout)
         r.raise_for_status()
         data = r.json()

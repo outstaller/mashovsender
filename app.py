@@ -65,7 +65,7 @@ def handle_login():
     user = request.form['username']
     pwd = request.form['password']
     year = request.form['year']
-    semel = os.getenv('MASHOV_SEMEL')
+    semel = os.getenv('MASHOV_SEMEL','')
 
     client = MashovClient(user, pwd, year, semel)
     try:
@@ -77,7 +77,7 @@ def handle_login():
             'semel': semel
         }
         session['step'] = 2
-        flash(f"מחובר כ{login_data.get('accessToken').get('displayName')}", 'success')
+        flash(f"מחובר כ{login_data.get('accessToken',{}).get('displayName')}", 'success')
     except Exception as e:
         flash(f'Login failed: {e}', 'danger')
         return redirect(url_for('index'))
@@ -87,7 +87,7 @@ def handle_csv_upload():
     file = request.files['csv_file']
     if file.filename == '':
         return jsonify({'error': 'No selected file'}), 400
-    if file and file.filename.endswith('.csv'):
+    if file and file.filename and file.filename.endswith('.csv'):
         filename = secure_filename(file.filename)
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
@@ -183,7 +183,7 @@ def generate_logs(creds, file_path, id_col, subject, body, dry_run, send_email):
         failed_df.to_csv(errors_file_path, index=False)
         yield f"data: [INFO] Failed rows written to {errors_file_path}\n\n"
 
-    yield f"data: --- SUMMARY ---\n\n"
+    yield "data: --- SUMMARY ---\n\n"
     yield f"data: Success: {success_count}\n\n"
     yield f"data: Failed: {failure_count}\n\n"
 
