@@ -1,0 +1,42 @@
+# docker-compose.yml
+# Run with:  docker compose up --build
+# Stops with: docker compose down
+
+services:
+  mashovsender:
+    build:
+      context: .
+      # uncomment the next line to pin the image architecture (helpful on Apple Silicon or ARM Windows)
+      # platform: linux/amd64
+    image: mashovsender:latest
+    container_name: mashovsender
+    # Expose your app on localhost:8000
+    ports:
+      - "8000:8000"
+    # Load environment variables (API keys, credentials, etc.) from .env next to this file
+    env_file:
+      - .env
+    # Persist uploads/logs on the host so they survive container restarts
+    volumes:
+      - ./uploads:/app/uploads
+    # Restart automatically unless you stop it
+    restart: unless-stopped
+    # Simple health check to verify the HTTP port is responding
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import socket; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1',8000)); print('ok')",
+        ]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    # keep logs readable and bounded
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
